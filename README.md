@@ -2,6 +2,9 @@
 
 Medical Buddy is an AI-powered virtual assistant designed to provide personalized medical assistance, including checking drug interactions, offering conversational support, and enabling safe, reliable access to medical information. This app integrates various models and tools to ensure that users get accurate and actionable insights for their medical needs.
 
+![WhatsApp Image 2024-09-06 at 02 30 36_7dcd4807](https://github.com/user-attachments/assets/b39d6735-f04e-46f6-8ab0-6c5e3b371110)
+
+
 ## Features
 
 - *Drug Interaction Checker*: Automatically checks for potential drug interactions between two medications using a CSV dataset, ensuring safety and clarity for users.
