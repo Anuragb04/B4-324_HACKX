@@ -1,142 +1,122 @@
+import speech_recognition as sr
+from adafruit_servokit import ServoKit
 import time
-import picamera
-import io
 import cv2
-import numpy as np
-import RPi.GPIO as GPIO
-import math
-# Import necessary libraries for communication and display use
-import drivers
-from time import sleep
+# Initialize recognizer class (for recognizing speech)
+recognizer = sr.Recognizer()
 
 
-display = drivers.Lcd()
+# Create a PCA9685 instance, assuming default address of 0x40
+kit = ServoKit(channels=16, address=0x41)
+kit.servo[0].set_pulse_width_range(500, 2500)
+kit.servo[1].set_pulse_width_range(500, 2500)
+kit.servo[2].set_pulse_width_range(500, 2500) 
+# Set the servo on channel 0 to 90 degrees (mid-point)
 
 
+import subprocess
+import os
+from langchain_core.messages import HumanMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 
-# Load the pre-trained Haar cascade classifiers for frontal and profile face detection
-frontal_face_cascade = cv2.CascadeClassifier('/home/vanshksingh/Downloads/haarcascade_frontalface_default.xml')
-profile_face_cascade = cv2.CascadeClassifier('/home/vanshksingh/Downloads/haarcascade_profileface.xml')
+def capture_image(image_name='image.jpg'):
+    cam = cv2.VideoCapture(1)
 
-# Create a stream object for the video capture
-stream = io.BytesIO()
-
-# Initialize OpenCV window
-cv2.namedWindow('Video Feed', cv2.WINDOW_NORMAL)
-
-# Initialize GPIO pins
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.OUT)  # GPIO pin for condition 1
-GPIO.setup(18, GPIO.OUT)  # GPIO pin for condition 2
-
-# Function to control GPIO pins based on the sum of face counts
-def control_gpio_pins(frontal_count, profile_count):
-    sum_object = frontal_count + profile_count
-    print("Total object:", sum_object)
-    if sum_object == 0:
-        display.lcd_clear()
-        display.lcd_backlight(0)
-        display.lcd_display_string("Person Count :" + str(sum_object), 1)   # Write line of text to first line of display
-        display.lcd_display_string("AC Turned OFF", 2)
-        sleep(1) 
-        GPIO.output(17, GPIO.LOW)
-        GPIO.output(18, GPIO.LOW)
-    elif sum_object == 1:
-        display.lcd_clear()
-        display.lcd_backlight(1)
-        display.lcd_display_string("Person Count :" + str(sum_object), 1)   # Write line of text to first line of display
-        display.lcd_display_string("AC Set to 25", 2)
-        sleep(1) 
-        GPIO.output(17, GPIO.HIGH)
-        GPIO.output(18, GPIO.LOW)
-    elif sum_object <= 3:
-        display.lcd_clear()
-        display.lcd_backlight(1)
-        display.lcd_display_string("Person Count :" + str(sum_object), 1)   # Write line of text to first line of display
-        display.lcd_display_string("AC Set to 22", 2)
-        sleep(1) 
-        GPIO.output(17, GPIO.LOW)
-        GPIO.output(18, GPIO.HIGH)
-    else sum_object <= 5:
-        display.lcd_clear()
-        display.lcd_backlight(1)
-        display.lcd_display_string("Person Count :" + str(sum_object), 1)   # Write line of text to first line of display
-        display.lcd_display_string("AC Set to 20", 2)
-        sleep(1) 
-        GPIO.output(17, GPIO.HIGH)
-        GPIO.output(18, GPIO.HIGH)
-
-# Main loop
-with picamera.PiCamera() as camera:
-    camera.resolution = (640, 480)
-    
-    # Initialize variables for face count and time tracking
-    frontal_face_count = 0
-    profile_face_count = 0
-    face_count_samples = 0
-    start_time = time.time()
-    
-    # Continuously capture frames
-    for _ in camera.capture_continuous(stream, format='jpeg', use_video_port=True):
-        # Rewind the stream for reading
-        stream.seek(0)
-        
-        # Convert the stream to OpenCV image format
-        data = stream.getvalue()
-        image = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
-        
-        # Convert the image to grayscale for face detection
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Detect frontal object in the image
-        frontal_object = frontal_face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        
-        # Detect profile object in the image
-        profile_object = profile_face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        
-        # Update face counts
-        frontal_face_count += len(frontal_object)
-        profile_face_count += len(profile_object)
-        face_count_samples += 1
-        
-        # Calculate elapsed time
-        elapsed_time = time.time() - start_time
-        
-        # If 5 seconds have passed, report the average face counts and control GPIO pins
-        if elapsed_time >= 5:
-            frontal_face_average = math.ceil(frontal_face_count / face_count_samples)
-            profile_face_average = math.ceil(profile_face_count / face_count_samples)
-            print("Average frontal face count:", frontal_face_average)
-            print("Average profile face count:", profile_face_average)
-            control_gpio_pins(frontal_face_average, profile_face_average)
-            
-            # Reset variables
-            frontal_face_count = 0
-            profile_face_count = 0
-            face_count_samples = 0
-            start_time = time.time()
-        
-        # Draw rectangles around detected frontal object
-        for (x, y, w, h) in frontal_object:
-            cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
-        
-        # Draw rectangles around detected profile object
-        for (x, y, w, h) in profile_object:
-            cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        
-        # Display the image with face detection
-        cv2.imshow('Video Feed', image)
-        
-        # Wait for 1 millisecond and check if the user pressed 'q' to exit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+    while True:
+        ret, image = cam.read()
+        cv2.imshow('Imagetest',image)
+        k = cv2.waitKey(1)
+        if k != -1:
             break
+    cv2.imwrite('/home/vanshksingh/testimage.jpg', image)
+    cam.release()
+    cv2.destroyAllWindows()
         
-        # Clear the stream in preparation for the next frame
-        stream.seek(0)
-        stream.truncate()
-        
-# Clean up GPIO
-GPIO.cleanup()
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro",google_api_key="AIzaSyCbwAj_jEB4q4TP2xF9eCt63TF7zYLIxSk")
+                                                            # example
+    message = HumanMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "Write a two to four word description of the file",
+                },
+                {"type": "image_url", "image_url": "/home/vanshksingh/testimage.jpg"},
+            ]
+        )
+    response = llm.invoke([message])
+    return response.content
 
-# Clean up OpenCV
-cv2.destroyAllWindows()
+
+# Function to continuously listen for any spoken commands
+def listen_for_command():
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+        print("Now listening for a command...")
+        try:
+            audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
+            command = recognizer.recognize_google(audio).lower()
+            print(f"Command detected: {command}")
+            return command
+        except (sr.WaitTimeoutError, sr.UnknownValueError, sr.RequestError):
+            return None
+
+# Function to listen continuously for the wake word
+def listen_for_wake_word():
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+        print("Listening for wake word 'Hey Buddy'...")
+        try:
+            command = recognizer.recognize_google(recognizer.listen(source, timeout=5, phrase_time_limit=5)).lower()
+            if "hey buddy" in command:
+                print("Wake word detected!")
+                return True
+            return False
+        except (sr.WaitTimeoutError, sr.UnknownValueError, sr.RequestError):
+            return False
+
+# Function to process commands and control the servo
+def process_command(command):
+    if "i have a fever" in command:
+        print("Moving servo to 20 degrees for 'I have a fever'.")
+        kit.servo[0].angle = 180
+        kit.servo[1].angle = 150
+        kit.servo[2].angle = 80
+    elif "i am feeling unwell" in command:
+        print("Moving servo to 100 degrees for 'I am feeling unwell'.")
+        kit.servo[0].angle = 90
+        kit.servo[1].angle = 60
+        kit.servo[2].angle = 75
+    elif "what is this" in command:
+        
+        # Capture the image and get description
+        print(capture_image('capture_image.jpg'))
+        
+        
+    print("Returning servo to 0 degrees.")
+    time.sleep(2)
+
+    kit.servo[0].angle = 0
+    kit.servo[1].angle = 0
+    kit.servo[2].angle = 0
+
+# Function to retry command recognition
+def retry_command(retries=5):
+    for _ in range(retries):
+        command = listen_for_command()
+        if command and any(phrase in command for phrase in ["i have a fever", "i am feeling unwell","what is this"]):
+            process_command(command)
+            return True
+        print("Command not recognized. Retrying...")
+    return False
+
+# Main function to keep the mic on after the wake word is detected
+def main():
+    while True:
+        # Listen for the wake word first
+        if listen_for_wake_word():
+            # Once the wake word is detected, keep listening for further commands
+            if retry_command():
+                print("Returning to wake word listening...")
+
+if _name_ == "_main_":
+    main()
