@@ -1,7 +1,4 @@
 import json
-import os
-from datetime import datetime
-import streamlit as st
 from langchain_community.llms import Ollama
 from langchain_core.prompts import ChatPromptTemplate , MessagesPlaceholder
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
@@ -10,45 +7,22 @@ from langchain.tools.render import render_text_description
 from langchain_core.output_parsers import JsonOutputParser
 from operator import itemgetter
 from langchain_experimental.utilities import PythonREPL
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_google_genai import GoogleGenerativeAI
+from langchain_core.messages import AIMessage
 import streamlit as st
 import pywhatkit as kit
 from langchain_core.messages import HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
-from transformers import BlipProcessor, BlipForConditionalGeneration, DetrImageProcessor, DetrForObjectDetection
-import speech_recognition as sr
-import subprocess
-import time
-import gtts
-import os
-import platform
-import pathlib
-import google.generativeai as genai
+from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
-import torch
-import cv2
-import time
-from langchain_community.tools import DuckDuckGoSearchRun
-from langchain.agents import load_tools
-import os
 import csv
-import getpass
-import os
-from langchain_google_genai import GoogleGenerativeAI
-import bs4
 from langchain import hub
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 import re
-import os
-
 import os
 import glob
 
@@ -128,7 +102,7 @@ def find_interaction(drug1_name, drug2_name):
 
 
 # Load interactions from the CSV file
-csv_file_path = "/Users/vanshkumarsingh/Downloads/data of multiple-type drug-drug interactions/DDI_data.csv"  # Replace with your actual CSV file path
+csv_file_path = "/Users/vanshkumarsingh/Desktop/hackx/pythonProject/data of multiple-type drug-drug interactions/DDI_data.csv"  # Replace with your actual CSV file path
 load_interactions_from_csv(csv_file_path)
 
 def get_task_decomposition(placeroute: str, query: str) -> str:
@@ -225,7 +199,7 @@ def medicine(query):
 
 @tool
 def repl(input: str) -> str:
-    """A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with print(...)."""
+    """A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with `print(...)`."""
     bar.progress(40)
     python_repl = PythonREPL()
     return python_repl.run(input)
@@ -309,7 +283,7 @@ def send_message_via_whatsapp_desktop(phone_number, message):
 # Set up message history.
 msgs = StreamlitChatMessageHistory(key="langchain_messages")
 if len(msgs.messages) == 0:
-    msgs.add_ai_message("I am an drug interaction checker , I'm here to assist to avoid bad rqactions and decisions. Always on, always learning. How can I help you today?")
+    msgs.add_ai_message("I am an drug interaction checker , I'm here to assist in avoiding bad reactions and decisions. Always on, always learning. How can I help you today?")
 
 # Set the page title.
 st.title("Med Buddy")
@@ -406,7 +380,7 @@ if input := st.chat_input("What is up?"):
         msgs.add_ai_message(response)
 
 
-        #send_message_via_whatsapp_desktop("+918570099643", "User Input= " + input + " Response= " + str(response))
+        #send_message_via_whatsapp_desktop("+9100000000", "User Input= " + input + " Response= " + str(response))   # Replace with your phone number
 
         save_chat_history()
         st.toast("Context Updated")
